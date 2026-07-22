@@ -1,27 +1,458 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pothole Detection AI</title>
+{% extends "base.html" %}
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
+{% block title %}Home - AI Pothole Detection{% endblock %}
 
-<body>
+{% block content %}
 
-<h1>Pothole Detection AI</h1>
+<!-- ================= HERO ================= -->
 
-<p>Welcome to the AI Road Inspection System.</p>
+<section class="hero-section">
 
-<hr>
+    <div class="container">
 
-<ul>
-    <li><a href="/image">📷 Image Detection</a></li>
-    <li><a href="/video">🎥 Video Detection</a></li>
-    <li><a href="/live">📹 Live Detection</a></li>
-    <li><a href="/about">ℹ About</a></li>
-</ul>
+        <div class="row align-items-center">
 
-</body>
-</html>
+            <div class="col-lg-6">
+
+                <span class="badge bg-primary mb-3 px-3 py-2">
+                    AI Powered Road Inspection
+                </span>
+
+                <h1 class="display-3 fw-bold mb-4">
+
+                    Detect Road Potholes
+                    <span class="text-primary">
+                        Instantly
+                    </span>
+
+                </h1>
+
+                <p class="lead text-secondary mb-4">
+
+                    A professional AI-powered pothole detection platform
+                    built using Flask, YOLO11, and OpenCV to accurately
+                    identify potholes from images, videos, and live camera
+                    feeds.
+
+                </p>
+
+                <div class="d-flex flex-wrap gap-3">
+
+                    <a href="{{ url_for('image') }}"
+                       class="btn btn-primary btn-lg">
+
+                        <i class="fas fa-image me-2"></i>
+
+                        Detect Image
+
+                    </a>
+
+                    <a href="{{ url_for('video') }}"
+                       class="btn btn-outline-light btn-lg">
+
+                        <i class="fas fa-video me-2"></i>
+
+                        Detect Video
+
+                    </a>
+
+                </div>
+
+            </div>
+
+            <div class="col-lg-6 text-center mt-5 mt-lg-0">
+
+                <img
+                    src="{{ url_for('static', filename='images/hero.png') }}"
+                    class="img-fluid hero-image"
+                    alt="AI Detection">
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+<!-- ================= STATS ================= -->
+
+<section class="container py-5">
+
+    <div class="row g-4">
+
+        <div class="col-md-3">
+
+            <div class="card stat-card">
+
+                <div class="card-body text-center">
+
+                    <i class="fas fa-brain fa-3x text-primary mb-3"></i>
+
+                    <h2 class="fw-bold">YOLO11</h2>
+
+                    <p class="text-secondary mb-0">
+
+                        AI Detection Model
+
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-3">
+
+            <div class="card stat-card">
+
+                <div class="card-body text-center">
+
+                    <i class="fas fa-camera fa-3x text-success mb-3"></i>
+
+                    <h2 class="fw-bold">Live</h2>
+
+                    <p class="text-secondary mb-0">
+
+                        Webcam Detection
+
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-3">
+
+            <div class="card stat-card">
+
+                <div class="card-body text-center">
+
+                    <i class="fas fa-video fa-3x text-warning mb-3"></i>
+
+                    <h2 class="fw-bold">Video</h2>
+
+                    <p class="text-secondary mb-0">
+
+                        Frame Processing
+
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-3">
+
+            <div class="card stat-card">
+
+                <div class="card-body text-center">
+
+                    <i class="fas fa-image fa-3x text-danger mb-3"></i>
+
+                    <h2 class="fw-bold">Images</h2>
+
+                    <p class="text-secondary mb-0">
+
+                        Instant Detection
+
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+<!-- ================= FEATURES ================= -->
+
+<section class="container py-5">
+
+    <div class="text-center mb-5">
+
+        <h2 class="fw-bold">
+
+            Why Choose This System?
+
+        </h2>
+
+        <p class="text-secondary">
+
+            Built for speed, accuracy, and ease of use.
+
+        </p>
+
+    </div>
+
+    <div class="row g-4">
+
+        <div class="col-lg-4">
+
+            <div class="card feature-card h-100">
+
+                <div class="card-body">
+
+                    <i class="fas fa-bolt fa-3x text-warning mb-4"></i>
+
+                    <h4>Fast Detection</h4>
+
+                    <p class="text-secondary">
+
+                        Detect potholes in seconds using a
+                        high-performance YOLO11 model.
+
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-lg-4">
+
+            <div class="card feature-card h-100">
+
+                <div class="card-body">
+
+                    <i class="fas fa-crosshairs fa-3x text-success mb-4"></i>
+
+                    <h4>High Accuracy</h4>
+
+                    <p class="text-secondary">
+
+                        Robust object detection trained specifically
+                        for pothole recognition.
+
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-lg-4">
+
+            <div class="card feature-card h-100">
+
+                <div class="card-body">
+
+                    <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-4"></i>
+
+                    <h4>Simple Upload</h4>
+
+                    <p class="text-secondary">
+
+                        Upload an image or video and receive
+                        annotated detection results instantly.
+
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+<!-- ================= HOW IT WORKS ================= -->
+
+<section class="container py-5">
+
+    <div class="text-center mb-5">
+
+        <h2 class="fw-bold">
+
+            How It Works
+
+        </h2>
+
+    </div>
+
+    <div class="row g-4">
+
+        <div class="col-md-3">
+
+            <div class="card text-center process-card">
+
+                <div class="card-body">
+
+                    <div class="process-number">
+
+                        1
+
+                    </div>
+
+                    <h5 class="mt-3">
+
+                        Upload
+
+                    </h5>
+
+                    <p class="text-secondary">
+
+                        Select an image or video.
+
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-3">
+
+            <div class="card text-center process-card">
+
+                <div class="card-body">
+
+                    <div class="process-number">
+
+                        2
+
+                    </div>
+
+                    <h5 class="mt-3">
+
+                        AI Processing
+
+                    </h5>
+
+                    <p class="text-secondary">
+
+                        YOLO11 performs inference.
+
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-3">
+
+            <div class="card text-center process-card">
+
+                <div class="card-body">
+
+                    <div class="process-number">
+
+                        3
+
+                    </div>
+
+                    <h5 class="mt-3">
+
+                        Detection
+
+                    </h5>
+
+                    <p class="text-secondary">
+
+                        Potholes are identified and marked.
+
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-3">
+
+            <div class="card text-center process-card">
+
+                <div class="card-body">
+
+                    <div class="process-number">
+
+                        4
+
+                    </div>
+
+                    <h5 class="mt-3">
+
+                        Download
+
+                    </h5>
+
+                    <p class="text-secondary">
+
+                        Save the processed result.
+
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+<!-- ================= CTA ================= -->
+
+<section class="container py-5">
+
+    <div class="card shadow-lg border-0 text-center p-5">
+
+        <h2 class="fw-bold mb-3">
+
+            Ready to Detect Potholes?
+
+        </h2>
+
+        <p class="text-secondary mb-4">
+
+            Start using our AI-powered detection system now.
+
+        </p>
+
+        <div class="d-flex justify-content-center gap-3 flex-wrap">
+
+            <a href="{{ url_for('image') }}"
+               class="btn btn-primary btn-lg">
+
+                Image Detection
+
+            </a>
+
+            <a href="{{ url_for('video') }}"
+               class="btn btn-success btn-lg">
+
+                Video Detection
+
+            </a>
+
+            <a href="{{ url_for('live') }}"
+               class="btn btn-danger btn-lg">
+
+                Live Detection
+
+            </a>
+
+        </div>
+
+    </div>
+
+</section>
+
+{% endblock %}

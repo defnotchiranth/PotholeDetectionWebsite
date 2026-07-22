@@ -1,0 +1,727 @@
+{% extends "base.html" %}
+
+{% block title %}Image Detection{% endblock %}
+
+{% block content %}
+
+<section class="container">
+
+    <!-- ================= HERO ================= -->
+
+    <div class="row justify-content-center mb-5">
+
+        <div class="col-lg-10 text-center">
+
+            <span class="badge bg-primary mb-3 px-3 py-2">
+                AI Image Detection
+            </span>
+
+            <h1 class="display-4 fw-bold mb-3">
+
+                Detect Potholes from Images
+
+            </h1>
+
+            <p class="lead text-secondary">
+
+                Upload a road image and let our trained
+                <strong>YOLO11</strong> model automatically detect potholes
+                with high accuracy.
+
+            </p>
+
+        </div>
+
+    </div>
+
+    <!-- ================= Upload Section ================= -->
+
+    <div class="row justify-content-center">
+
+        <div class="col-lg-8">
+
+            <div class="card shadow-lg border-0 upload-card">
+
+                <div class="card-body p-5">
+
+                    <form
+                        action="{{ url_for('image') }}"
+                        method="POST"
+                        enctype="multipart/form-data"
+                        id="uploadForm">
+
+                        <div
+                            id="dropZone"
+                            class="drop-zone text-center">
+
+                            <i class="fas fa-cloud-upload-alt fa-5x text-primary mb-4"></i>
+
+                            <h3>
+
+                                Drag & Drop Image
+
+                            </h3>
+
+                            <p class="text-secondary">
+
+                                or click below to browse
+
+                            </p>
+
+                            <input
+                                type="file"
+                                id="imageInput"
+                                name="image"
+                                accept=".jpg,.jpeg,.png,.bmp,.webp"
+                                hidden>
+
+                            <button
+                                type="button"
+                                class="btn btn-primary btn-lg mt-3"
+                                id="browseBtn">
+
+                                Browse Image
+
+                            </button>
+
+                        </div>
+
+                        <!-- Preview -->
+
+                        <div
+                            id="previewContainer"
+                            class="mt-4 d-none">
+
+                            <h5 class="mb-3">
+
+                                Image Preview
+
+                            </h5>
+
+                            <img
+                                id="previewImage"
+                                class="img-fluid rounded shadow">
+
+                        </div>
+
+                        <!-- Detect Button -->
+
+                        <div class="text-center mt-5">
+
+                            <button
+                                class="btn btn-success btn-lg px-5"
+                                type="submit">
+
+                                <i class="fas fa-search me-2"></i>
+
+                                Detect Potholes
+
+                            </button>
+
+                        </div>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ================= Loading Overlay ================= -->
+
+    <div
+        id="loadingOverlay"
+        class="loading-overlay d-none">
+
+        <div class="text-center">
+
+            <div
+                class="spinner-border text-primary"
+                style="width:70px;height:70px;">
+
+            </div>
+
+            <h3 class="mt-4">
+
+                Processing Image...
+
+            </h3>
+
+            <p>
+
+                Running YOLO11 inference
+
+            </p>
+
+        </div>
+
+    </div>
+
+    <!-- ================= Detection Results ================= -->
+
+    {% if result %}
+
+    <div class="mt-5">
+
+        <hr class="my-5">
+
+        <div class="text-center mb-5">
+
+            <h2 class="fw-bold">
+
+                Detection Results
+
+            </h2>
+
+            <p class="text-secondary">
+
+                AI-generated analysis of the uploaded image.
+
+            </p>
+
+        </div>
+
+        <!-- ================= Statistics ================= -->
+
+        <div class="row g-4 mb-5">
+
+            <div class="col-md-3">
+
+                <div class="card stat-card h-100">
+
+                    <div class="card-body text-center">
+
+                        <i class="fas fa-circle-exclamation fa-2x text-danger mb-3"></i>
+
+                        <h2 class="fw-bold">
+
+                            {{ result.total }}
+
+                        </h2>
+
+                        <p class="text-secondary mb-0">
+
+                            Potholes Detected
+
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="col-md-3">
+
+                <div class="card stat-card h-100">
+
+                    <div class="card-body text-center">
+
+                        <i class="fas fa-chart-line fa-2x text-success mb-3"></i>
+
+                        <h2 class="fw-bold">
+
+                            {{ result.avg_conf }}%
+
+                        </h2>
+
+                        <p class="text-secondary mb-0">
+
+                            Average Confidence
+
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="col-md-3">
+
+                <div class="card stat-card h-100">
+
+                    <div class="card-body text-center">
+
+                        <i class="fas fa-gauge-high fa-2x text-primary mb-3"></i>
+
+                        <h2 class="fw-bold">
+
+                            {{ result.highest }}%
+
+                        </h2>
+
+                        <p class="text-secondary mb-0">
+
+                            Highest Confidence
+
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="col-md-3">
+
+                <div class="card stat-card h-100">
+
+                    <div class="card-body text-center">
+
+                        <i class="fas fa-clock fa-2x text-warning mb-3"></i>
+
+                        <h2 class="fw-bold">
+
+                            {{ result.inference }} ms
+
+                        </h2>
+
+                        <p class="text-secondary mb-0">
+
+                            Inference Time
+
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- ================= More Statistics ================= -->
+
+        <div class="row g-4 mb-5">
+
+            <div class="col-md-6">
+
+                <div class="card stat-card">
+
+                    <div class="card-body">
+
+                        <h5 class="mb-3">
+
+                            <i class="fas fa-image text-primary me-2"></i>
+
+                            Image Information
+
+                        </h5>
+
+                        <table class="table table-borderless mb-0">
+
+                            <tr>
+
+                                <td>Resolution</td>
+
+                                <td class="text-end fw-bold">
+
+                                    {{ result.width }} × {{ result.height }}
+
+                                </td>
+
+                            </tr>
+
+                            <tr>
+
+                                <td>Detections</td>
+
+                                <td class="text-end fw-bold">
+
+                                    {{ result.total }}
+
+                                </td>
+
+                            </tr>
+
+                            <tr>
+
+                                <td>Average Confidence</td>
+
+                                <td class="text-end fw-bold">
+
+                                    {{ result.avg_conf }}%
+
+                                </td>
+
+                            </tr>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="col-md-6">
+
+                <div class="card stat-card">
+
+                    <div class="card-body">
+
+                        <h5 class="mb-3">
+
+                            <i class="fas fa-chart-column text-success me-2"></i>
+
+                            Confidence Summary
+
+                        </h5>
+
+                        <table class="table table-borderless mb-0">
+
+                            <tr>
+
+                                <td>Highest</td>
+
+                                <td class="text-end fw-bold text-success">
+
+                                    {{ result.highest }}%
+
+                                </td>
+
+                            </tr>
+
+                            <tr>
+
+                                <td>Lowest</td>
+
+                                <td class="text-end fw-bold text-danger">
+
+                                    {{ result.lowest }}%
+
+                                </td>
+
+                            </tr>
+
+                            <tr>
+
+                                <td>Inference</td>
+
+                                <td class="text-end fw-bold">
+
+                                    {{ result.inference }} ms
+
+                                </td>
+
+                            </tr>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- ================= Images ================= -->
+
+        <div class="row g-4">
+
+            <div class="col-lg-6">
+
+                <div class="card shadow">
+
+                    <div class="card-header">
+
+                        <h5 class="mb-0">
+
+                            Original Image
+
+                        </h5>
+
+                    </div>
+
+                    <div class="card-body text-center">
+
+                        <img
+                            src="{{ url_for('static', filename='uploads/' + result.original) }}"
+                            class="img-fluid rounded">
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="col-lg-6">
+
+                <div class="card shadow">
+
+                    <div class="card-header">
+
+                        <h5 class="mb-0">
+
+                            Detected Image
+
+                        </h5>
+
+                    </div>
+
+                    <div class="card-body text-center">
+
+                        <img
+                            src="{{ url_for('static', filename='outputs/' + result.output_image) }}"
+                            class="img-fluid rounded">
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- ================= Download ================= -->
+
+        <div class="text-center mt-5">
+
+            <a
+                href="{{ url_for('static', filename='outputs/' + result.output_image) }}"
+                download
+                class="btn btn-primary btn-lg">
+
+                <i class="fas fa-download me-2"></i>
+
+                Download Annotated Image
+
+            </a>
+
+        </div>
+
+        <!-- ================= Detection Table ================= -->
+
+        <div class="card shadow mt-5">
+
+            <div class="card-header">
+
+                <h4 class="mb-0">
+
+                    Detection Details
+
+                </h4>
+
+            </div>
+
+            <div class="card-body p-0">
+
+                <div class="table-responsive">
+
+                    <table class="table table-hover align-middle mb-0">
+
+                        <thead>
+
+                            <tr>
+
+                                <th>#</th>
+
+                                <th>Confidence</th>
+
+                                <th>Bounding Box</th>
+
+                            </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                            {% if result.detections %}
+
+                                {% for detection in result.detections %}
+
+                                <tr>
+
+                                    <td>
+
+                                        {{ loop.index }}
+
+                                    </td>
+
+                                    <td>
+
+                                        <span class="badge bg-success">
+
+                                            {{ detection.confidence }}%
+
+                                        </span>
+
+                                    </td>
+
+                                    <td>
+
+                                        {{ detection.bbox }}
+
+                                    </td>
+
+                                </tr>
+
+                                {% endfor %}
+
+                            {% else %}
+
+                                <tr>
+
+                                    <td colspan="3" class="text-center py-4">
+
+                                        No potholes detected.
+
+                                    </td>
+
+                                </tr>
+
+                            {% endif %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </div>
+                <!-- ================= End Results ================= -->
+
+    </div>
+
+    {% endif %}
+
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+
+<script>
+
+document.addEventListener("DOMContentLoaded", () => {
+
+    const browseBtn = document.getElementById("browseBtn");
+    const input = document.getElementById("imageInput");
+    const previewContainer = document.getElementById("previewContainer");
+    const previewImage = document.getElementById("previewImage");
+    const uploadForm = document.getElementById("uploadForm");
+    const loadingOverlay = document.getElementById("loadingOverlay");
+    const dropZone = document.getElementById("dropZone");
+
+    // --------------------------------------------------
+    // Browse Button
+    // --------------------------------------------------
+
+    browseBtn.addEventListener("click", () => {
+
+        input.click();
+
+    });
+
+    // --------------------------------------------------
+    // Preview Selected Image
+    // --------------------------------------------------
+
+    input.addEventListener("change", function () {
+
+        if (!this.files.length)
+            return;
+
+        const file = this.files[0];
+
+        if (!file.type.startsWith("image/")) {
+
+            alert("Please select a valid image.");
+
+            this.value = "";
+
+            return;
+
+        }
+
+        const reader = new FileReader();
+
+        reader.onload = function (e) {
+
+            previewContainer.classList.remove("d-none");
+
+            previewImage.src = e.target.result;
+
+        }
+
+        reader.readAsDataURL(file);
+
+    });
+
+    // --------------------------------------------------
+    // Drag & Drop
+    // --------------------------------------------------
+
+    ["dragenter", "dragover"].forEach(eventName => {
+
+        dropZone.addEventListener(eventName, e => {
+
+            e.preventDefault();
+
+            e.stopPropagation();
+
+            dropZone.classList.add("drag-active");
+
+        });
+
+    });
+
+    ["dragleave", "drop"].forEach(eventName => {
+
+        dropZone.addEventListener(eventName, e => {
+
+            e.preventDefault();
+
+            e.stopPropagation();
+
+            dropZone.classList.remove("drag-active");
+
+        });
+
+    });
+
+    dropZone.addEventListener("drop", e => {
+
+        const files = e.dataTransfer.files;
+
+        if (!files.length)
+            return;
+
+        input.files = files;
+
+        input.dispatchEvent(new Event("change"));
+
+    });
+
+    // --------------------------------------------------
+    // Submit Form
+    // --------------------------------------------------
+
+    uploadForm.addEventListener("submit", function (e) {
+
+        if (!input.files.length) {
+
+            e.preventDefault();
+
+            alert("Please choose an image first.");
+
+            return;
+
+        }
+
+        loadingOverlay.classList.remove("d-none");
+
+    });
+
+});
+
+</script>
+
+{% endblock %}

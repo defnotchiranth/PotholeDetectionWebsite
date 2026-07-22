@@ -1,0 +1,563 @@
+{% extends "base.html" %}
+
+{% block title %}Video Detection{% endblock %}
+
+{% block content %}
+
+<section class="container">
+
+    <!-- ================= HERO ================= -->
+
+    <div class="row justify-content-center mb-5">
+
+        <div class="col-lg-10 text-center">
+
+            <span class="badge bg-success mb-3 px-3 py-2">
+
+                AI Video Detection
+
+            </span>
+
+            <h1 class="display-4 fw-bold mb-3">
+
+                Detect Potholes in Videos
+
+            </h1>
+
+            <p class="lead text-secondary">
+
+                Upload a road inspection video and let our trained
+                <strong>YOLO11</strong> model detect potholes frame by frame.
+
+            </p>
+
+        </div>
+
+    </div>
+
+    <!-- ================= Upload Card ================= -->
+
+    <div class="row justify-content-center">
+
+        <div class="col-lg-8">
+
+            <div class="card shadow-lg border-0 upload-card">
+
+                <div class="card-body p-5">
+
+                    <form
+                        action="{{ url_for('video') }}"
+                        method="POST"
+                        enctype="multipart/form-data"
+                        id="videoForm">
+
+                        <div
+                            id="videoDropZone"
+                            class="drop-zone text-center">
+
+                            <i class="fas fa-video fa-5x text-success mb-4"></i>
+
+                            <h3>
+
+                                Drag & Drop Video
+
+                            </h3>
+
+                            <p class="text-secondary">
+
+                                or click below to browse
+
+                            </p>
+
+                            <input
+                                type="file"
+                                name="video"
+                                id="videoInput"
+                                accept=".mp4,.avi,.mov,.mkv"
+                                hidden>
+
+                            <button
+                                type="button"
+                                class="btn btn-success btn-lg mt-3"
+                                id="browseVideo">
+
+                                Browse Video
+
+                            </button>
+
+                        </div>
+
+                        <!-- Selected File -->
+
+                        <div
+                            id="selectedVideo"
+                            class="alert alert-info mt-4 d-none">
+
+                            <i class="fas fa-file-video me-2"></i>
+
+                            <span id="videoName"></span>
+
+                        </div>
+
+                        <div class="text-center mt-4">
+
+                            <button
+                                class="btn btn-primary btn-lg px-5"
+                                type="submit">
+
+                                <i class="fas fa-play me-2"></i>
+
+                                Process Video
+
+                            </button>
+
+                        </div>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ================= Loading ================= -->
+
+    <div
+        id="videoLoading"
+        class="loading-overlay d-none">
+
+        <div class="text-center">
+
+            <div
+                class="spinner-border text-success"
+                style="width:70px;height:70px;">
+
+            </div>
+
+            <h3 class="mt-4">
+
+                Processing Video...
+
+            </h3>
+
+            <p>
+
+                YOLO11 is analyzing every frame.
+
+            </p>
+
+        </div>
+
+    </div>
+
+    {% if result %}
+
+    <div class="mt-5">
+
+        <hr class="my-5">
+
+        <div class="text-center mb-5">
+
+            <h2 class="fw-bold">
+
+                Detection Results
+
+            </h2>
+
+            <p class="text-secondary">
+
+                Annotated video generated successfully.
+
+            </p>
+
+        </div>
+
+        <!-- ================= Statistics ================= -->
+
+        <div class="row g-4 mb-5">
+
+            <div class="col-md-6">
+
+                <div class="card stat-card h-100">
+
+                    <div class="card-body text-center">
+
+                        <i class="fas fa-film fa-2x text-primary mb-3"></i>
+
+                        <h2 class="fw-bold">
+
+                            {{ result.frames }}
+
+                        </h2>
+
+                        <p class="text-secondary mb-0">
+
+                            Total Frames Processed
+
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="col-md-6">
+
+                <div class="card stat-card h-100">
+
+                    <div class="card-body text-center">
+
+                        <i class="fas fa-circle-exclamation fa-2x text-danger mb-3"></i>
+
+                        <h2 class="fw-bold">
+
+                            {{ result.detections }}
+
+                        </h2>
+
+                        <p class="text-secondary mb-0">
+
+                            Total Potholes Detected
+
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- ================= Video Players ================= -->
+
+        <div class="row g-4">
+
+            <!-- Original Video -->
+
+            <div class="col-lg-6">
+
+                <div class="card shadow">
+
+                    <div class="card-header">
+
+                        <h5 class="mb-0">
+
+                            Original Video
+
+                        </h5>
+
+                    </div>
+
+                    <div class="card-body">
+
+                        <video
+                            class="w-100 rounded"
+                            controls>
+
+                            <source
+                                src="{{ url_for('static', filename='uploads/' + result.original) }}"
+                                type="video/mp4">
+
+                            Your browser does not support HTML5 video.
+
+                        </video>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- Processed Video -->
+
+            <div class="col-lg-6">
+
+                <div class="card shadow">
+
+                    <div class="card-header">
+
+                        <h5 class="mb-0">
+
+                            YOLO11 Output
+
+                        </h5>
+
+                    </div>
+
+                    <div class="card-body">
+
+                        <video
+                            class="w-100 rounded"
+                            controls>
+
+                            <source
+                                src="{{ url_for('static', filename='outputs/' + result.output_video) }}"
+                                type="video/mp4">
+
+                            Your browser does not support HTML5 video.
+
+                        </video>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- ================= Summary ================= -->
+
+        <div class="row mt-5">
+
+            <div class="col-lg-12">
+
+                <div class="card shadow">
+
+                    <div class="card-body">
+
+                        <h4 class="mb-4">
+
+                            Processing Summary
+
+                        </h4>
+
+                        <table class="table table-striped align-middle">
+
+                            <tbody>
+
+                                <tr>
+
+                                    <th width="40%">
+
+                                        Total Frames
+
+                                    </th>
+
+                                    <td>
+
+                                        {{ result.frames }}
+
+                                    </td>
+
+                                </tr>
+
+                                <tr>
+
+                                    <th>
+
+                                        Total Detections
+
+                                    </th>
+
+                                    <td>
+
+                                        {{ result.detections }}
+
+                                    </td>
+
+                                </tr>
+
+                                <tr>
+
+                                    <th>
+
+                                        Model Used
+
+                                    </th>
+
+                                    <td>
+
+                                        YOLO11
+
+                                    </td>
+
+                                </tr>
+
+                                <tr>
+
+                                    <th>
+
+                                        Output Format
+
+                                    </th>
+
+                                    <td>
+
+                                        MP4
+
+                                    </td>
+
+                                </tr>
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- ================= Download ================= -->
+
+        <div class="text-center mt-5">
+
+            <a
+                href="{{ url_for('static', filename='outputs/' + result.output_video) }}"
+                download
+                class="btn btn-success btn-lg">
+
+                <i class="fas fa-download me-2"></i>
+
+                Download Processed Video
+
+            </a>
+
+        </div>
+
+        <!-- ================= End Results ================= -->
+
+    </div>
+
+    {% endif %}
+
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+
+<script>
+
+document.addEventListener("DOMContentLoaded", () => {
+
+    const browseVideo = document.getElementById("browseVideo");
+    const videoInput = document.getElementById("videoInput");
+    const selectedVideo = document.getElementById("selectedVideo");
+    const videoName = document.getElementById("videoName");
+    const videoForm = document.getElementById("videoForm");
+    const loading = document.getElementById("videoLoading");
+    const dropZone = document.getElementById("videoDropZone");
+
+    // ==========================================
+    // Browse Button
+    // ==========================================
+
+    browseVideo.addEventListener("click", () => {
+
+        videoInput.click();
+
+    });
+
+    // ==========================================
+    // Show Selected File
+    // ==========================================
+
+    videoInput.addEventListener("change", () => {
+
+        if (!videoInput.files.length)
+            return;
+
+        const file = videoInput.files[0];
+
+        if (!file.type.startsWith("video/")) {
+
+            alert("Please select a valid video.");
+
+            videoInput.value = "";
+
+            return;
+
+        }
+
+        selectedVideo.classList.remove("d-none");
+
+        videoName.textContent = file.name;
+
+    });
+
+    // ==========================================
+    // Drag Enter
+    // ==========================================
+
+    ["dragenter", "dragover"].forEach(eventName => {
+
+        dropZone.addEventListener(eventName, e => {
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            dropZone.classList.add("drag-active");
+
+        });
+
+    });
+
+    // ==========================================
+    // Drag Leave
+    // ==========================================
+
+    ["dragleave", "drop"].forEach(eventName => {
+
+        dropZone.addEventListener(eventName, e => {
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            dropZone.classList.remove("drag-active");
+
+        });
+
+    });
+
+    // ==========================================
+    // Drop File
+    // ==========================================
+
+    dropZone.addEventListener("drop", e => {
+
+        const files = e.dataTransfer.files;
+
+        if (!files.length)
+            return;
+
+        videoInput.files = files;
+
+        videoInput.dispatchEvent(new Event("change"));
+
+    });
+
+    // ==========================================
+    // Form Validation
+    // ==========================================
+
+    videoForm.addEventListener("submit", e => {
+
+        if (!videoInput.files.length) {
+
+            e.preventDefault();
+
+            alert("Please choose a video.");
+
+            return;
+
+        }
+
+        loading.classList.remove("d-none");
+
+    });
+
+});
+
+</script>
+
+{% endblock %}
