@@ -1,0 +1,15 @@
+venv/
+__pycache__/
+*.pyc
+
+static/uploads/*
+static/outputs/*
+
+.env
+
+.DS_Store
+Thumbs.db
+
+runs/
+
+*.pt
