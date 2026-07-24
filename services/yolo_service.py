@@ -2,6 +2,8 @@ import os
 import time
 import uuid
 import cv2
+import gc
+import torch
 
 from ultralytics import YOLO
 
@@ -153,52 +155,51 @@ class YOLOService:
     # VIDEO DETECTION
     # =====================================================
 
-    def detect_video(self, video_path):
+def detect_video(self, video_path):
 
-        model = self.get_model()
+    model = self.get_model()
 
-        cap = cv2.VideoCapture(video_path)
+    cap = cv2.VideoCapture(video_path)
 
-        if not cap.isOpened():
+    if not cap.isOpened():
+        return {
+            "success": False,
+            "message": "Unable to open video."
+        }
 
-            return {
-                "success": False,
-                "message": "Unable to open video."
-            }
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    if fps <= 0:
+        fps = 30
 
-        fps = cap.get(cv2.CAP_PROP_FPS)
+    output_name = self._unique_filename("mp4")
 
-        if fps <= 0:
-            fps = 30
+    output_path = os.path.join(
+        config.OUTPUT_FOLDER,
+        output_name
+    )
 
+    writer = cv2.VideoWriter(
+        output_path,
+        cv2.VideoWriter_fourcc(*"mp4v"),
+        fps,
+        (width, height)
+    )
 
-        output_name = self._unique_filename("mp4")
+    start = time.time()
 
-        output_path = os.path.join(
-            config.OUTPUT_FOLDER,
-            output_name
-        )
+    total_detections = 0
+    processed_frames = 0
 
-        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+    highest_confidence = 0
+    confidence_sum = 0
+    confidence_count = 0
 
-        writer = cv2.VideoWriter(
-            output_path,
-            fourcc,
-            fps,
-            (width, height)
-        )
+    frame_number = 0
 
-        start = time.time()
-
-        total_detections = 0
-        processed_frames = 0
-
-        highest_confidence = 0
-        confidence_sum = 0
-        confidence_count = 0
+    with torch.inference_mode():
 
         while True:
 
@@ -207,15 +208,39 @@ class YOLOService:
             if not success:
                 break
 
+            frame_number += 1
+
+            # Process every second frame
+            if frame_number % 2 != 0:
+                writer.write(frame)
+                continue
+
+            h, w = frame.shape[:2]
+
+            # Resize only if wider than 640 px
+            if w > 640:
+                scale = 640 / w
+                frame = cv2.resize(
+                    frame,
+                    (640, int(h * scale))
+                )
+
             results = model.predict(
                 source=frame,
                 conf=config.CONFIDENCE,
+                imgsz=640,
                 verbose=False
             )
 
             result = results[0]
 
             annotated = result.plot()
+
+            # Restore original resolution
+            annotated = cv2.resize(
+                annotated,
+                (width, height)
+            )
 
             writer.write(annotated)
 
@@ -229,52 +254,55 @@ class YOLOService:
                 )
 
                 total_detections += 1
-
                 confidence_sum += confidence
-
                 confidence_count += 1
 
                 if confidence > highest_confidence:
                     highest_confidence = confidence
 
-        cap.release()
+            del results
+            del result
 
-        writer.release()
+            if frame_number % 20 == 0:
+                gc.collect()
 
-        processing_time = round(
-            time.time() - start,
+    cap.release()
+    writer.release()
+
+    processing_time = round(
+        time.time() - start,
+        2
+    )
+
+    average_confidence = 0
+
+    if confidence_count > 0:
+        average_confidence = round(
+            confidence_sum / confidence_count,
             2
         )
 
-        average_confidence = 0
+    return {
 
-        if confidence_count > 0:
+        "success": True,
 
-            average_confidence = round(
-                confidence_sum / confidence_count,
-                2
-            )
+        "original": os.path.basename(video_path),
 
-        return {
+        "output_video": output_name,
 
-            "success": True,
+        "frames": processed_frames,
 
-            "original": os.path.basename(video_path),
+        "detections": total_detections,
 
-            "output_video": output_name,
+        "highest_confidence": highest_confidence,
 
-            "frames": processed_frames,
+        "average_confidence": average_confidence,
 
-            "detections": total_detections,
+        "processing_time": processing_time
 
-            "highest_confidence": highest_confidence,
+    }
 
-            "average_confidence": average_confidence,
-
-            "processing_time": processing_time
-
-        }
-        # =====================================================
+    # =====================================================
     # LIVE CAMERA STREAM
     # =====================================================
 
