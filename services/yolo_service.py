@@ -157,24 +157,13 @@ class YOLOService:
     # VIDEO DETECTION
     # =====================================================
 
+    # =====================================================
+    # VIDEO DETECTION
+    # =====================================================
+
     def detect_video(self, video_path):
 
         model = self.get_model()
-
-        cap = cv2.VideoCapture(video_path)
-
-        if not cap.isOpened():
-            return {
-                "success": False,
-                "message": "Unable to open video."
-            }
-
-        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-
-        fps = cap.get(cv2.CAP_PROP_FPS)
-        if fps <= 0:
-            fps = 30
 
         output_name = self._unique_filename("mp4")
 
@@ -183,92 +172,47 @@ class YOLOService:
             output_name
         )
 
-        writer = cv2.VideoWriter(
-            output_path,
-            cv2.VideoWriter_fourcc(*"mp4v"),
-            fps,
-            (width, height)
-        )
-
         start = time.time()
-
-        total_detections = 0
-        processed_frames = 0
 
         highest_confidence = 0
         confidence_sum = 0
         confidence_count = 0
-
-        frame_number = 0
+        total_detections = 0
+        processed_frames = 0
 
         with torch.inference_mode():
 
-            while True:
+            results = model.predict(
+                source=video_path,
+                conf=config.CONFIDENCE,
+                stream=True,
+                save=True,
+                project=config.OUTPUT_FOLDER,
+                name=os.path.splitext(output_name)[0],
+                exist_ok=True,
+                verbose=False,
+                imgsz=640
+            )
 
-                success, frame = cap.read()
-
-                if not success:
-                    break
-
-                frame_number += 1
-
-                # Process every 2nd frame
-                if frame_number % 2 != 0:
-                    writer.write(frame)
-                    continue
-
-                h, w = frame.shape[:2]
-
-                if w > 640:
-                    scale = 640 / w
-                    frame = cv2.resize(
-                        frame,
-                        (640, int(h * scale))
-                    )
-
-                results = model.predict(
-                    source=frame,
-                    conf=config.CONFIDENCE,
-                    imgsz=640,
-                    verbose=False
-                )
-
-                result = results[0]
-
-                annotated = result.plot()
-
-                annotated = cv2.resize(
-                    annotated,
-                    (width, height)
-                )
-
-                writer.write(annotated)
+            for result in results:
 
                 processed_frames += 1
 
                 for box in result.boxes:
 
-                    confidence = round(
-                        float(box.conf[0]) * 100,
-                        2
-                    )
+                    conf = round(float(box.conf[0]) * 100, 2)
 
                     total_detections += 1
-
-                    confidence_sum += confidence
+                    confidence_sum += conf
                     confidence_count += 1
 
-                    if confidence > highest_confidence:
-                        highest_confidence = confidence
+                    if conf > highest_confidence:
+                        highest_confidence = conf
 
-                del results
                 del result
 
-                if frame_number % 20 == 0:
+                if processed_frames % 10 == 0:
                     gc.collect()
-
-        cap.release()
-        writer.release()
 
         processing_time = round(
             time.time() - start,
@@ -277,11 +221,27 @@ class YOLOService:
 
         average_confidence = 0
 
-        if confidence_count > 0:
+        if confidence_count:
             average_confidence = round(
                 confidence_sum / confidence_count,
                 2
             )
+
+        generated_folder = os.path.join(
+            config.OUTPUT_FOLDER,
+            os.path.splitext(output_name)[0]
+        )
+
+        generated_video = None
+
+        for file in os.listdir(generated_folder):
+            if file.endswith(".mp4"):
+                generated_video = file
+                os.rename(
+                    os.path.join(generated_folder, file),
+                    output_path
+                )
+                break
 
         return {
 
