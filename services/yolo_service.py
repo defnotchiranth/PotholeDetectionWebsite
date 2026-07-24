@@ -1,8 +1,8 @@
 import os
 import time
 import uuid
-import cv2
 import gc
+import cv2
 import torch
 
 from ultralytics import YOLO
@@ -20,7 +20,9 @@ class YOLOService:
     # =====================================================
 
     def get_model(self):
+
         if self.model is None:
+
             print("=" * 60)
             print("Loading YOLO model...")
             print("=" * 60)
@@ -43,7 +45,7 @@ class YOLOService:
     @staticmethod
     def _confidence_stats(detections):
 
-        if len(detections) == 0:
+        if not detections:
             return {
                 "highest": 0,
                 "lowest": 0,
@@ -155,154 +157,152 @@ class YOLOService:
     # VIDEO DETECTION
     # =====================================================
 
-def detect_video(self, video_path):
+    def detect_video(self, video_path):
 
-    model = self.get_model()
+        model = self.get_model()
 
-    cap = cv2.VideoCapture(video_path)
+        cap = cv2.VideoCapture(video_path)
 
-    if not cap.isOpened():
-        return {
-            "success": False,
-            "message": "Unable to open video."
-        }
+        if not cap.isOpened():
+            return {
+                "success": False,
+                "message": "Unable to open video."
+            }
 
-    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    if fps <= 0:
-        fps = 30
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        if fps <= 0:
+            fps = 30
 
-    output_name = self._unique_filename("mp4")
+        output_name = self._unique_filename("mp4")
 
-    output_path = os.path.join(
-        config.OUTPUT_FOLDER,
-        output_name
-    )
+        output_path = os.path.join(
+            config.OUTPUT_FOLDER,
+            output_name
+        )
 
-    writer = cv2.VideoWriter(
-        output_path,
-        cv2.VideoWriter_fourcc(*"mp4v"),
-        fps,
-        (width, height)
-    )
+        writer = cv2.VideoWriter(
+            output_path,
+            cv2.VideoWriter_fourcc(*"mp4v"),
+            fps,
+            (width, height)
+        )
 
-    start = time.time()
+        start = time.time()
 
-    total_detections = 0
-    processed_frames = 0
+        total_detections = 0
+        processed_frames = 0
 
-    highest_confidence = 0
-    confidence_sum = 0
-    confidence_count = 0
+        highest_confidence = 0
+        confidence_sum = 0
+        confidence_count = 0
 
-    frame_number = 0
+        frame_number = 0
 
-    with torch.inference_mode():
+        with torch.inference_mode():
 
-        while True:
+            while True:
 
-            success, frame = cap.read()
+                success, frame = cap.read()
 
-            if not success:
-                break
+                if not success:
+                    break
 
-            frame_number += 1
+                frame_number += 1
 
-            # Process every second frame
-            if frame_number % 2 != 0:
-                writer.write(frame)
-                continue
+                # Process every 2nd frame
+                if frame_number % 2 != 0:
+                    writer.write(frame)
+                    continue
 
-            h, w = frame.shape[:2]
+                h, w = frame.shape[:2]
 
-            # Resize only if wider than 640 px
-            if w > 640:
-                scale = 640 / w
-                frame = cv2.resize(
-                    frame,
-                    (640, int(h * scale))
+                if w > 640:
+                    scale = 640 / w
+                    frame = cv2.resize(
+                        frame,
+                        (640, int(h * scale))
+                    )
+
+                results = model.predict(
+                    source=frame,
+                    conf=config.CONFIDENCE,
+                    imgsz=640,
+                    verbose=False
                 )
 
-            results = model.predict(
-                source=frame,
-                conf=config.CONFIDENCE,
-                imgsz=640,
-                verbose=False
-            )
+                result = results[0]
 
-            result = results[0]
+                annotated = result.plot()
 
-            annotated = result.plot()
-
-            # Restore original resolution
-            annotated = cv2.resize(
-                annotated,
-                (width, height)
-            )
-
-            writer.write(annotated)
-
-            processed_frames += 1
-
-            for box in result.boxes:
-
-                confidence = round(
-                    float(box.conf[0]) * 100,
-                    2
+                annotated = cv2.resize(
+                    annotated,
+                    (width, height)
                 )
 
-                total_detections += 1
-                confidence_sum += confidence
-                confidence_count += 1
+                writer.write(annotated)
 
-                if confidence > highest_confidence:
-                    highest_confidence = confidence
+                processed_frames += 1
 
-            del results
-            del result
+                for box in result.boxes:
 
-            if frame_number % 20 == 0:
-                gc.collect()
+                    confidence = round(
+                        float(box.conf[0]) * 100,
+                        2
+                    )
 
-    cap.release()
-    writer.release()
+                    total_detections += 1
 
-    processing_time = round(
-        time.time() - start,
-        2
-    )
+                    confidence_sum += confidence
+                    confidence_count += 1
 
-    average_confidence = 0
+                    if confidence > highest_confidence:
+                        highest_confidence = confidence
 
-    if confidence_count > 0:
-        average_confidence = round(
-            confidence_sum / confidence_count,
+                del results
+                del result
+
+                if frame_number % 20 == 0:
+                    gc.collect()
+
+        cap.release()
+        writer.release()
+
+        processing_time = round(
+            time.time() - start,
             2
         )
 
-    return {
+        average_confidence = 0
 
-        "success": True,
+        if confidence_count > 0:
+            average_confidence = round(
+                confidence_sum / confidence_count,
+                2
+            )
 
-        "original": os.path.basename(video_path),
+        return {
 
-        "output_video": output_name,
+            "success": True,
 
-        "frames": processed_frames,
+            "original": os.path.basename(video_path),
 
-        "detections": total_detections,
+            "output_video": output_name,
 
-        "highest_confidence": highest_confidence,
+            "frames": processed_frames,
 
-        "average_confidence": average_confidence,
+            "detections": total_detections,
 
-        "processing_time": processing_time
+            "highest_confidence": highest_confidence,
 
-    }
+            "average_confidence": average_confidence,
 
-    # =====================================================
+            "processing_time": processing_time
+
+        }
+        # =====================================================
     # LIVE CAMERA STREAM
     # =====================================================
 
@@ -349,7 +349,6 @@ def detect_video(self, video_path):
         finally:
 
             camera.release()
-
             cv2.destroyAllWindows()
 
 
